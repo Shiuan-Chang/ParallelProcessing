@@ -58,7 +58,6 @@ namespace ParallelProcessing
             //CPU的核心數 跟 執行緒的數量之間的關係是甚麼?
             // 看是什麼樣的核心，效能核心（Performance-cores）支援超執行緒技術（Hyper-Threading），可以處理2 條執行緒，效率核心（Efficient-cores）每個核心處理 1 條執行緒
 
-
             //何謂執行緒阻塞? => 執行緒不是開越多越好
             // 
             //最好的效能是: 執行緒的總數量+1
@@ -67,13 +66,13 @@ namespace ParallelProcessing
             //執行緒 開50條執行緒(自己去除看每一條要多少批次)  100, 200, 3, 5 , 10,15,16,17,18 ...etc  反覆驗證 在你的電腦上 執行緒具體開多少條效能會是最佳
 
 
-
-            string readFilePath = @"C:\CSharp練習\data read\MOCK_DATA (10).csv";
+            string readFilePath = @"C:\CSharp練習\data read\MOCK_DATA8.csv";
             string baseFolderPath = @"C:\Users\icewi\OneDrive\桌面\DataTest";
 
-            int totalRecords = 10_000_000; // 總資料筆數
-            int batchSize = totalRecords / 16; // 每個執行緒負責的筆數
-            int threadCount = 16; // 啟動 16 個執行緒
+            int totalRecords = 500_000; // 總資料筆數
+            int batchSize = totalRecords / 3; // 每個執行緒負責的筆數
+            int threadCount = 3; // 啟動 N 個執行緒
+            int remainder = totalRecords % threadCount;
 
             List<Task> tasks = new List<Task>();
             Stopwatch totalStopwatch = Stopwatch.StartNew();
@@ -86,6 +85,7 @@ namespace ParallelProcessing
             for (int i = 0; i < threadCount; i++)
             {
                 int count = i;
+
                 tasks.Add(Task.Run(async () =>
                 {
                     Stopwatch readStopwatch = new Stopwatch();
@@ -100,6 +100,7 @@ namespace ParallelProcessing
                     // 計時讀取過程
                     readStopwatch.Start();
                     List<CsvRow> result = CSVHelper.CSV.ReadCSV<CsvRow>(readFilePath, startLine, linesToRead);
+
                     readStopwatch.Stop();
 
                     double batchReadTime = readStopwatch.Elapsed.TotalSeconds;
@@ -137,20 +138,26 @@ namespace ParallelProcessing
             }
 
             await Task.WhenAll(tasks);
+            //GC.Collect();
             totalStopwatch.Stop();
 
             Console.WriteLine("程式執行結束");
             Console.WriteLine($"最大讀取耗時: {maxReadTime:F2} 秒");
             Console.WriteLine($"最大寫入耗時: {maxWriteTime:F2} 秒");
             Console.WriteLine($"總共耗時: {totalStopwatch.Elapsed.TotalSeconds:F2} 秒");
+
+
+            // 讀取「目前程式最後」使用的記憶體
+            Process currentProcess = Process.GetCurrentProcess();
+            long workingSet = currentProcess.WorkingSet64;
+            Console.WriteLine($"程式結束時的記憶體用量: {workingSet / 1024.0 / 1024.0:F2} MB");
+
             Console.ReadKey();
         }
 
         // 模擬寫入 CSV 的函式
       
     }
-
-
             //double totalReadTime = 0;
             //List<Task> tasks = new List<Task>();    
             //// 逐批讀取資料，拿到每個task的區間
@@ -188,10 +195,7 @@ namespace ParallelProcessing
             //Console.WriteLine("程式執行結束");
             //Console.WriteLine("總共耗時:"+ stopwatch.Elapsed.TotalSeconds + "秒");
             //Console.ReadKey();
-
         }
-
-
         //private static async Task Task1()
         //{
         //    //await Task.Run(async () =>
